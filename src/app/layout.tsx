@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Resume Pro",
+  title: "HireMate",
   description: "Build professional resumes powered by AI.",
 };
 

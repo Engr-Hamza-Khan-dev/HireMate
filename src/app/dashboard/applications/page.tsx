@@ -1,3 +1,5 @@
+export const metadata = { title: "Applications" };
+
 export default function ApplicationsPage() {
   return (
     <div className="container mx-auto p-4">
