@@ -7,8 +7,8 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
   title: {
-    template: "%s | AI Resume Pro",
-    default: "AI Resume Pro",
+    template: "%s | HireMate",
+    default: "HireMate",
   },
   description: "Build, manage and export professional resumes powered by AI.",
 };
