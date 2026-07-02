@@ -23,10 +23,7 @@ export default function ProfileHeader({
         </p>
       </div>
 
-      <Button
-        onClick={onSave}
-        className="bg-violet-600 hover:bg-violet-700"
-      >
+      <Button onClick={onSave}>
         Save Changes
       </Button>
     </div>
