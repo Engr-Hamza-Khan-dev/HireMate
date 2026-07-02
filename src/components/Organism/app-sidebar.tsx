@@ -23,10 +23,10 @@ export function AppSidebar() {
     setCollapsed(!collapsed);
   };
 
-  const SidebarContent = () => (
+  const SidebarContent = ({ onNavClick }: { onNavClick?: () => void }) => (
     <>
       <div className="flex-1 overflow-y-auto px-3 py-4">
-        <NavGroup collapsed={collapsed} />
+        <NavGroup collapsed={collapsed} onNavClick={onNavClick} />
       </div>
       <Separator />
       <div className="px-3 py-3">
@@ -55,7 +55,7 @@ export function AppSidebar() {
                   <span className="text-sm font-bold tracking-tight">HIREMATE</span>
                 </div>
               </div>
-              <SidebarContent />
+              <SidebarContent onNavClick={() => setMobileOpen(false)} />
             </aside>
           </SheetContent>
         </Sheet>

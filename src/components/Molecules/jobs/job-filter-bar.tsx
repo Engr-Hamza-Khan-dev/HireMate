@@ -18,6 +18,8 @@ export type FilterBarProps = ComponentProps<"div"> & {
   onExperienceChange?: (value: string) => void;
   sortValue?: string;
   onSortChange?: (value: string) => void;
+  /** When true, hides the search input (used on mobile where search is rendered separately) */
+  hideSearch?: boolean;
 };
 
 const LOCATION_OPTIONS = [
@@ -58,53 +60,58 @@ export function FilterBar({
   onExperienceChange,
   sortValue = "best",
   onSortChange,
+  hideSearch = false,
   className,
 }: FilterBarProps) {
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2",
+        "flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2",
         className
       )}
     >
-      <SearchInput
-        placeholder="Search jobs, titles or companies..."
-        className="w-full sm:w-80"
-        value={searchValue}
-        onChange={(e) => onSearchChange?.(e.target.value)}
-      />
-      <Select
-        options={LOCATION_OPTIONS}
-        placeholder="All Locations"
-        className="w-full sm:w-40"
-        value={locationValue}
-        onChange={(e) => onLocationChange?.(e.target.value)}
-      />
-      <Select
-        options={JOB_TYPE_OPTIONS}
-        placeholder="All Job Types"
-        className="w-full sm:w-40"
-        value={jobTypeValue}
-        onChange={(e) => onJobTypeChange?.(e.target.value)}
-      />
-      <Select
-        options={EXPERIENCE_OPTIONS}
-        placeholder="Any Experience"
-        className="w-full sm:w-40"
-        value={experienceValue}
-        onChange={(e) => onExperienceChange?.(e.target.value)}
-      />
-      <Select
-        options={SORT_OPTIONS}
-        placeholder="Best Match"
-        className="w-full sm:w-36"
-        value={sortValue}
-        onChange={(e) => onSortChange?.(e.target.value)}
-      />
+      {!hideSearch && (
+        <SearchInput
+          placeholder="Search jobs, titles or companies..."
+          className="w-full sm:w-72 lg:w-80"
+          value={searchValue}
+          onChange={(e) => onSearchChange?.(e.target.value)}
+        />
+      )}
+      <div className="grid grid-cols-2 gap-2 sm:contents">
+        <Select
+          options={LOCATION_OPTIONS}
+          placeholder="All Locations"
+          className="w-full sm:w-36 lg:w-40"
+          value={locationValue}
+          onChange={(e) => onLocationChange?.(e.target.value)}
+        />
+        <Select
+          options={JOB_TYPE_OPTIONS}
+          placeholder="All Job Types"
+          className="w-full sm:w-36 lg:w-40"
+          value={jobTypeValue}
+          onChange={(e) => onJobTypeChange?.(e.target.value)}
+        />
+        <Select
+          options={EXPERIENCE_OPTIONS}
+          placeholder="Any Experience"
+          className="w-full sm:w-36 lg:w-40"
+          value={experienceValue}
+          onChange={(e) => onExperienceChange?.(e.target.value)}
+        />
+        <Select
+          options={SORT_OPTIONS}
+          placeholder="Best Match"
+          className="w-full sm:w-32 lg:w-36"
+          value={sortValue}
+          onChange={(e) => onSortChange?.(e.target.value)}
+        />
+      </div>
       <Button
         variant="outline"
         size="icon"
-        className="h-11 w-11 shrink-0 sm:w-auto sm:px-4 sm:py-2.5"
+        className="hidden h-11 w-11 shrink-0 sm:flex sm:w-auto sm:px-4 sm:py-2.5"
       >
         <Filter className="h-4 w-4 sm:mr-2" />
         <span className="hidden sm:inline">Filters</span>
