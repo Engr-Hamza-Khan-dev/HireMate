@@ -72,13 +72,14 @@ export default function ForgotPasswordPage() {
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Didn&apos;t receive the email?{" "}
-                  <button
+                  <Button
                     type="button"
+                    variant="link"
+                    className="h-auto p-0 font-semibold"
                     onClick={() => setSubmitted(false)}
-                    className="font-semibold text-primary hover:underline"
                   >
                     Try again
-                  </button>
+                  </Button>
                 </p>
                 <Button asChild className="h-11 w-full text-sm font-semibold mt-2">
                   <Link href="/sign-in">Return to sign in</Link>

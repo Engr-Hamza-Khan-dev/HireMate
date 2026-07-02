@@ -4,7 +4,7 @@ import { Filter } from "lucide-react";
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 import { SearchInput } from "@/components/Atoms/search-input";
-import { Select } from "@/components/Atoms/job-select";
+import { Select } from "@/components/Atoms/jobs/job-select";
 import { Button } from "@/components/Atoms/button";
 
 export type FilterBarProps = ComponentProps<"div"> & {

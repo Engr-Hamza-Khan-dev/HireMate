@@ -1,7 +1,7 @@
-import React from "react";
+import type { ReactNode } from "react";
 
 type StatCardProps = {
-  icon: React.ReactNode;
+  icon: ReactNode;
   value: string;
   label: string;
   trend: string;
@@ -14,11 +14,11 @@ export default function StatCard({
   value,
   label,
   trend,
-  trendColor = "text-green-600",
-  iconBg = "bg-purple-100 text-purple-600",
+  trendColor = "text-success",
+  iconBg = "bg-primary/10 text-primary",
 }: StatCardProps) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
       <div className="flex items-start gap-4">
         <div
           className={`flex h-12 w-12 items-center justify-center rounded-xl ${iconBg}`}
@@ -27,8 +27,8 @@ export default function StatCard({
         </div>
 
         <div className="flex-1">
-          <div className="text-2xl font-semibold text-gray-900">{value}</div>
-          <div className="text-sm text-gray-500">{label}</div>
+          <div className="text-2xl font-semibold text-foreground">{value}</div>
+          <div className="text-sm text-muted-foreground">{label}</div>
           <div className={`mt-2 text-sm font-medium ${trendColor}`}>{trend}</div>
         </div>
       </div>

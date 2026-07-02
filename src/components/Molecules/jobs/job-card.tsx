@@ -2,8 +2,8 @@
 
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
-import { CompanyLogo } from "@/components/Atoms/job-company-logo";
-import { JobMeta } from "@/components/Atoms/job-meta";
+import { CompanyLogo } from "@/components/Atoms/jobs/job-company-logo";
+import { JobMeta } from "@/components/Atoms/jobs/job-meta";
 import { MatchBadge } from "@/components/Atoms/match-badge";
 import type { Job } from "@/lib/data/jobs";
 

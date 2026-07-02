@@ -101,9 +101,9 @@ export default function VerifyPage() {
             {verified ? (
               /* Success state */
               <div className="flex flex-col items-center gap-4 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-success/10">
                   <svg
-                    className="h-7 w-7 text-green-600"
+                    className="h-7 w-7 text-success"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -173,13 +173,14 @@ export default function VerifyPage() {
 
                 <p className="text-center text-sm text-muted-foreground">
                   Didn&apos;t receive a code?{" "}
-                  <button
+                  <Button
                     type="button"
+                    variant="link"
+                    className="h-auto p-0 font-semibold"
                     onClick={handleResend}
-                    className="font-semibold text-primary hover:underline"
                   >
                     Resend code
-                  </button>
+                  </Button>
                 </p>
 
                 <AuthSecurityNote />

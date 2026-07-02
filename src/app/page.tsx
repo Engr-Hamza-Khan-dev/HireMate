@@ -1,9 +1,12 @@
-import { redirect } from "next/navigation";
+import type { Metadata } from "next";
+import LandingPage from "@/components/Organism/landing";
 
-/**
- * Root route — immediately redirects to /dashboard.
- * Keeping this as a Server Component redirect avoids a client-side flash.
- */
+export const metadata: Metadata = {
+  title: "HireMate AI — Land Your Dream Job Faster",
+  description:
+    "AI-powered tools to find the right jobs, create ATS-friendly resumes, and write personalised cover letters in minutes.",
+};
+
 export default function RootPage() {
-  redirect("/dashboard/");
+  return <LandingPage />;
 }

@@ -1,7 +1,7 @@
 "use client";
 
 const LEVELS = ["", "Weak", "Fair", "Good", "Strong"] as const;
-const COLORS = ["", "bg-red-400", "bg-yellow-400", "bg-blue-400", "bg-green-500"] as const;
+const COLORS = ["", "bg-destructive", "bg-warning", "bg-info", "bg-success"] as const;
 
 export type AuthPasswordStrengthProps = {
   password: string;
