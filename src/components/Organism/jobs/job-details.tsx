@@ -5,9 +5,9 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/Atoms/button";
-import { JobTabs } from "@/components/Molecules/job-tabs";
-import { ResumeCard } from "@/components/Molecules/job-resume-card";
-import { CoverLetterCard } from "@/components/Molecules/job-cover-letter-card";
+import { JobTabs } from "@/components/Molecules/jobs/job-tabs";
+import { ResumeCard } from "@/components/Molecules/jobs/job-resume-card";
+import { CoverLetterCard } from "@/components/Molecules/jobs/job-cover-letter-card";
 import { MatchAnalysisCard } from "@/components/Molecules/match-analysis-card";
 import type { Job } from "@/lib/data/jobs";
 
@@ -19,7 +19,7 @@ export type JobDetailsProps = ComponentProps<"section"> & {
 
 const TABS = [
   { value: "details", label: "Job Details" },
-  { value: "resume", label: "AI Suggested Resume" },
+  { value: "resume", label: "Resume" },
   { value: "cover-letter", label: "Cover Letter" },
   { value: "analysis", label: "Match Analysis" },
 ];
@@ -31,33 +31,33 @@ export function JobDetails({
   className,
 }: JobDetailsProps) {
   return (
-    <section className={cn("flex h-full flex-col", className)}>
+    <section className={cn("flex flex-col", className)}>
       <div className="pb-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-muted">
-              <span className="text-lg font-semibold text-foreground">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted sm:h-14 sm:w-14">
+              <span className="text-base font-semibold text-foreground sm:text-lg">
                 {job.company[0]}
               </span>
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-foreground">{job.title}</h2>
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-1">
+              <h2 className="text-lg font-semibold text-foreground sm:text-xl">{job.title}</h2>
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5">
                 <span>{job.company}</span>
                 <span className="text-xs">✓</span>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 sm:shrink-0">
             <Button variant="ghost" size="icon" className="h-9 w-9">
               <Bookmark className="h-4 w-4" />
             </Button>
-            <Button className="h-9 bg-primary hover:bg-primary/90">
+            <Button className="h-9 flex-1 bg-primary text-xs hover:bg-primary/90 sm:flex-none sm:text-sm">
               Apply on Company Site
             </Button>
           </div>
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
+        <div className="mt-3 flex flex-wrap items-center gap-1 text-xs text-muted-foreground sm:text-sm">
           <span>{job.location}</span>
           <span>•</span>
           <span>{job.type}</span>
@@ -82,7 +82,7 @@ export function JobDetails({
         className="mb-4"
       />
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="">
         {activeTab === "details" && (
           <div className="space-y-6">
             <div>
@@ -134,14 +134,21 @@ export function JobDetails({
         )}
 
         {activeTab === "resume" && (
-          <div className="pr-2 -mr-2">
-            <ResumeCard />
+          <div>
+            <ResumeCard
+              jobTitle={job.title}
+              matchPercentage={job.matchPercentage}
+            />
           </div>
         )}
 
         {activeTab === "cover-letter" && (
-          <div className="pr-2 -mr-2">
-            <CoverLetterCard />
+          <div>
+            <CoverLetterCard
+              jobTitle={job.title}
+              company={job.company}
+              matchPercentage={job.matchPercentage}
+            />
           </div>
         )}
 

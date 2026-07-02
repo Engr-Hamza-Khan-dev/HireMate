@@ -26,13 +26,13 @@ export function JobTabs({
 
   return (
     <div className={cn("w-full", className)}>
-      <div className="flex items-center gap-6 border-b border-border">
+      <div className="flex items-center gap-4 overflow-x-auto border-b border-border scrollbar-none sm:gap-6">
         {tabs.map((tab) => (
           <button
             key={tab.value}
             onClick={() => onTabChange?.(tab.value)}
             className={cn(
-              "relative pb-2.5 text-sm font-medium transition-colors",
+              "relative shrink-0 pb-2.5 text-sm font-medium transition-colors",
               selectedValue === tab.value
                 ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"
