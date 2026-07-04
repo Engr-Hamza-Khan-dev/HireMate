@@ -19,18 +19,33 @@ import QuickActionsSection from "@/components/Molecules/profile/quick-action-sec
 
 export default function ProfileOverview() {
   const [activeTab, setActiveTab] = useState("personal");
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = () => {
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
 
   return (
-    <div className="space-y-8 p-6">
+    <div className="relative space-y-6 p-4 pt-16 sm:p-6 sm:pt-6">
+      {/* Save toast */}
+      {saved && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-6 right-6 z-50 rounded-xl bg-green-600 px-5 py-3 text-sm font-medium text-white shadow-lg"
+        >
+          ✓ Changes saved
+        </div>
+      )}
+
       <ProfileHeader
         title="Profile"
         description="Manage your professional profile and career information."
+        onSave={handleSave}
       />
 
-      <ProfileTabs
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
+      <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
       {activeTab === "personal" && (
         <div className="grid gap-6 lg:grid-cols-3">
@@ -42,38 +57,18 @@ export default function ProfileOverview() {
 
           <div className="space-y-6">
             <ProfileCompletenessCard percentage={75} />
-            <QuickActionsSection />
+            <QuickActionsSection onTabChange={setActiveTab} />
           </div>
         </div>
       )}
 
-      {activeTab === "experience" && (
-        <ExperienceSection />
-      )}
-
-      {activeTab === "education" && (
-        <EducationSection />
-      )}
-
-      {activeTab === "skills" && (
-        <SkillsSection />
-      )}
-
-      {activeTab === "projects" && (
-        <ProjectsSection />
-      )}
-
-      {activeTab === "certificates" && (
-        <CertificatesSection />
-      )}
-
-      {activeTab === "languages" && (
-        <LanguagesSection />
-      )}
-
-      {activeTab === "preferences" && (
-        <PreferencesSection />
-      )}
+      {activeTab === "experience" && <ExperienceSection />}
+      {activeTab === "education" && <EducationSection />}
+      {activeTab === "skills" && <SkillsSection />}
+      {activeTab === "projects" && <ProjectsSection />}
+      {activeTab === "certificates" && <CertificatesSection />}
+      {activeTab === "languages" && <LanguagesSection />}
+      {activeTab === "preferences" && <PreferencesSection />}
     </div>
   );
 }

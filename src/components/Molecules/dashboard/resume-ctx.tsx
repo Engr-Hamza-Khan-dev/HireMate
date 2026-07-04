@@ -8,30 +8,22 @@ type ResumeCTAProps = {
   icon?: React.ReactNode;
 };
 
-export default function ResumeCTA({
-  title,
-  description,
-  buttonLabel,
-  onClick,
-  icon,
-}: ResumeCTAProps) {
+export default function ResumeCTA({ title, description, buttonLabel, onClick, icon }: ResumeCTAProps) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-      <div className="flex items-center justify-between gap-4">
+    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             {icon ?? "✨"}
           </div>
-
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-            <p className="text-sm text-gray-500">{description}</p>
+            <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+            <p className="text-sm text-muted-foreground">{description}</p>
           </div>
         </div>
-
         <button
           onClick={onClick}
-          className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-medium text-white hover:bg-indigo-700"
+          className="self-start rounded-xl bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition sm:self-auto"
         >
           {buttonLabel}
         </button>

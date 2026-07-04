@@ -1,110 +1,61 @@
 "use client";
 
 import { useState } from "react";
-
 import { Button } from "@/components/Atoms/button";
 
+const PREF_KEYS = [
+  { key: "remote",        label: "Open to Remote Jobs"    },
+  { key: "fullTime",      label: "Open to Full-Time Jobs" },
+  { key: "internship",    label: "Open to Internships"    },
+  { key: "freelance",     label: "Open to Freelance Work" },
+  { key: "relocation",    label: "Willing to Relocate"    },
+  { key: "notifications", label: "Email Notifications"    },
+] as const;
+
+type PrefKey = typeof PREF_KEYS[number]["key"];
+
 export default function PreferencesSection() {
-  const [preferences, setPreferences] = useState({
-    remote: true,
-    fullTime: true,
-    internship: false,
-    freelance: false,
-    relocation: true,
-    notifications: true,
+  const [prefs, setPrefs] = useState<Record<PrefKey, boolean>>({
+    remote: true, fullTime: true, internship: false,
+    freelance: false, relocation: true, notifications: true,
   });
 
-  const toggle = (key: keyof typeof preferences) => {
-    setPreferences((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-  };
+  const toggle = (key: PrefKey) =>
+    setPrefs((p) => ({ ...p, [key]: !p[key] }));
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold">
-          Preferences
-        </h2>
-
-        <p className="text-sm text-muted-foreground">
-          Customize your job search preferences.
-        </p>
+        <h2 className="text-lg font-semibold text-foreground">Preferences</h2>
+        <p className="text-sm text-muted-foreground">Customize your job search preferences.</p>
       </div>
 
-      <div className="space-y-4 rounded-lg border p-6">
-        <PreferenceRow
-          title="Open to Remote Jobs"
-          checked={preferences.remote}
-          onClick={() => toggle("remote")}
-        />
+      <div className="space-y-4 rounded-lg border border-border p-6">
+        {PREF_KEYS.map(({ key, label }) => (
+          <div key={key} className="flex items-center justify-between border-b border-border pb-4 last:border-none last:pb-0">
+            <span className="font-medium text-foreground">{label}</span>
 
-        <PreferenceRow
-          title="Open to Full-Time Jobs"
-          checked={preferences.fullTime}
-          onClick={() => toggle("fullTime")}
-        />
-
-        <PreferenceRow
-          title="Open to Internships"
-          checked={preferences.internship}
-          onClick={() => toggle("internship")}
-        />
-
-        <PreferenceRow
-          title="Open to Freelance Work"
-          checked={preferences.freelance}
-          onClick={() => toggle("freelance")}
-        />
-
-        <PreferenceRow
-          title="Willing to Relocate"
-          checked={preferences.relocation}
-          onClick={() => toggle("relocation")}
-        />
-
-        <PreferenceRow
-          title="Email Notifications"
-          checked={preferences.notifications}
-          onClick={() => toggle("notifications")}
-        />
+            {/* Toggle switch */}
+            <button
+              role="switch"
+              aria-checked={prefs[key]}
+              aria-label={label}
+              onClick={() => toggle(key)}
+              className={`relative h-7 w-14 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                prefs[key] ? "bg-primary" : "bg-muted"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
+                  prefs[key] ? "translate-x-7" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
+        ))}
       </div>
 
-      <Button>
-        Save Preferences
-      </Button>
-    </div>
-  );
-}
-
-interface PreferenceRowProps {
-  title: string;
-  checked: boolean;
-  onClick: () => void;
-}
-
-function PreferenceRow({
-  title,
-  checked,
-  onClick,
-}: PreferenceRowProps) {
-  return (
-    <div className="flex items-center justify-between border-b pb-4 last:border-none">
-      <span className="font-medium">{title}</span>
-
-      <button
-        onClick={onClick}
-        className={`h-7 w-14 rounded-full transition ${
-          checked ? "bg-violet-600" : "bg-gray-300"
-        }`}
-      >
-        <div
-          className={`h-6 w-6 rounded-full bg-white shadow transition ${
-            checked ? "translate-x-7" : "translate-x-0"
-          }`}
-        />
-      </button>
+      <Button>Save Preferences</Button>
     </div>
   );
 }

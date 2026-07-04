@@ -23,17 +23,19 @@ export default function ProfileTabs({
   onTabChange,
 }: ProfileTabsProps) {
   return (
-    <div className="flex flex-wrap gap-2 border-b pb-3">
-      {TABS.map((tab) => (
-        <Button
-          key={tab.id}
-          variant={activeTab === tab.id ? "default" : "ghost"}
-          size="sm"
-          onClick={() => onTabChange(tab.id)}
-        >
-          {tab.label}
-        </Button>
-      ))}
+    <div className="overflow-x-auto pb-1">
+      <div className="flex gap-2 border-b pb-3 min-w-max sm:min-w-0 sm:flex-wrap">
+        {TABS.map((tab) => (
+          <Button
+            key={tab.id}
+            variant={activeTab === tab.id ? "default" : "ghost"}
+            size="sm"
+            onClick={() => onTabChange(tab.id)}
+          >
+            {tab.label}
+          </Button>
+        ))}
+      </div>
     </div>
   );
 }
