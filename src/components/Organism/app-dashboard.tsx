@@ -40,16 +40,30 @@ export default function Dashboard() {
         name="Hamza"
         subtitle="Here's what's happening with your career journey."
         rightSlot={
-          <button
-            aria-label="Notifications"
-            onClick={() => alert("Notifications — coming soon!")}
-            className="relative flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm hover:bg-accent transition"
-          >
-            <Bell className="h-5 w-5" />
-            <span className="absolute right-0 top-0 h-5 min-w-5 rounded-full bg-destructive px-1 text-[10px] font-semibold leading-5 text-destructive-foreground">
-              3
-            </span>
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Bell */}
+            <button
+              aria-label="Notifications"
+              onClick={() => alert("Notifications — coming soon!")}
+              className="relative flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm hover:bg-accent transition"
+            >
+              <Bell className="h-5 w-5" />
+              <span className="absolute right-0 top-0 h-4 min-w-4 rounded-full bg-destructive px-1 text-[9px] font-semibold leading-4 text-destructive-foreground">
+                3
+              </span>
+            </button>
+
+            {/* Profile avatar — navigates to /dashboard/profile */}
+            <button
+              aria-label="Go to profile"
+              onClick={() => router.push("/dashboard/profile")}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm border border-border shadow-sm hover:ring-2 hover:ring-primary/40 transition overflow-hidden"
+              title="Hamza Khan"
+            >
+              {/* swap src for a real avatar URL once you have one */}
+              H
+            </button>
+          </div>
         }
       />
 
