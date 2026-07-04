@@ -19,8 +19,8 @@ export default function UserProfileMini({
         className="h-10 w-10 rounded-full object-cover"
       />
       <div>
-        <p className="text-sm font-semibold text-gray-900">{name}</p>
-        <p className="text-xs text-gray-500">{email}</p>
+        <p className="text-sm font-semibold text-foreground">{name}</p>
+        <p className="text-xs text-muted-foreground">{email}</p>
       </div>
     </div>
   );

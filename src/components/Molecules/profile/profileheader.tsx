@@ -12,7 +12,7 @@ export default function ProfileHeader({
   onSave,
 }: ProfileHeaderProps) {
   return (
-    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           {title}
@@ -23,7 +23,7 @@ export default function ProfileHeader({
         </p>
       </div>
 
-      <Button onClick={onSave}>
+      <Button onClick={onSave} className="self-start sm:self-auto">
         Save Changes
       </Button>
     </div>
