@@ -186,3 +186,8 @@
   ::-webkit-scrollbar-thumb { @apply rounded-full bg-border; }
   ::-webkit-scrollbar-thumb:hover { @apply bg-muted-foreground/40; }
 }
+
+@keyframes progress {
+  from { width: 0% }
+  to   { width: 100% }
+}
