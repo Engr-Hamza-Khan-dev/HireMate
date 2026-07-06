@@ -1,5 +1,9 @@
+"use client";
+
+import { useRouter } from "next/navigation";
 import { AuthOAuthButton } from "@/components/Atoms/auth/auth-oauth-button";
 
+/* ─── Icons ──────────────────────────────────────────────────────── */
 const GoogleIcon = () => (
   <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -15,20 +19,57 @@ const LinkedInIcon = () => (
   </svg>
 );
 
+/* ─── OAuth URLs ─────────────────────────────────────────────────── */
+/**
+ * In production replace these with your real OAuth provider URLs.
+ * e.g. for Clerk:  /api/auth/oauth/google
+ *      for NextAuth: /api/auth/signin/google
+ *      for custom:  https://accounts.google.com/o/oauth2/v2/auth?...
+ *
+ * The callback should ultimately redirect to:
+ *   /auth-success?provider=google&name=John+Doe&email=john@gmail.com
+ */
+const OAUTH_URLS = {
+  google: "/auth/google",
+  linkedin: "/auth/linkedin",
+} as const;
+
 type AuthOAuthButtonsProps = {
-  /** "sign-in" renders "Continue with …", "sign-up" renders "Sign up with …" */
+  /** "sign-in" → "Continue with …"  |  "sign-up" → "Sign up with …" */
   variant?: "sign-in" | "sign-up";
 };
 
 /**
  * Molecule: Google + LinkedIn OAuth buttons.
+ * Clicking Google navigates to the Google OAuth flow which,
+ * after verification, redirects to /auth-success.
  */
 export function AuthOAuthButtons({ variant = "sign-in" }: AuthOAuthButtonsProps) {
+  const router = useRouter();
   const prefix = variant === "sign-up" ? "Sign up with" : "Continue with";
+
+  function handleGoogle() {
+    // TODO: replace with real OAuth URL / Clerk / NextAuth handler
+    router.push(OAUTH_URLS.google);
+  }
+
+  function handleLinkedIn() {
+    // TODO: replace with real OAuth URL / Clerk / NextAuth handler
+    router.push(OAUTH_URLS.linkedin);
+  }
+
   return (
     <div className="flex flex-col gap-3">
-      <AuthOAuthButton icon={<GoogleIcon />} label={`${prefix} Google`} />
-      <AuthOAuthButton icon={<LinkedInIcon />} label={`${prefix} LinkedIn`} />
+      <AuthOAuthButton
+        icon={<GoogleIcon />}
+        label={`${prefix} Google`}
+        onClick={handleGoogle}
+      />
+      <AuthOAuthButton
+        icon={<LinkedInIcon />}
+        label={`${prefix} LinkedIn`}
+        onClick={handleLinkedIn}
+      />
     </div>
   );
 }
