@@ -8,19 +8,21 @@ import { UserFooter } from "../Molecules/user-footer";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-
-const SIDEBAR_USER = {
-  name: "Hamza Khan",
-  email: "hamza@example.com",
-  avatarUrl: "",
-} as const;
+import { useAuth } from "@/context/Authcontext";
 
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, loading } = useAuth();
 
   const handleToggle = () => {
     setCollapsed(!collapsed);
+  };
+
+  const userProps = {
+    name: user?.fullname ?? "",
+    email: user?.email ?? "",
+    avatarUrl: user?.avatar ?? "",
   };
 
   const SidebarContent = ({ onNavClick }: { onNavClick?: () => void }) => (
@@ -30,7 +32,7 @@ export function AppSidebar() {
       </div>
       <Separator />
       <div className="px-3 py-3">
-        <UserFooter {...SIDEBAR_USER} collapsed={collapsed} />
+        <UserFooter {...userProps} collapsed={collapsed} />
       </div>
     </>
   );

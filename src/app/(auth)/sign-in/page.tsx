@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { EyeIcon, EyeOffIcon, LockIcon, MailIcon } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 
 import { AuthLeftPanel } from "@/components/Molecules/auth/auth-left-panel";
 import { AuthFormHeader } from "@/components/Molecules/auth/auth-form-header";
@@ -11,8 +13,11 @@ import { AuthSecurityNote } from "@/components/Molecules/auth/auth-security-note
 import { AuthDivider } from "@/components/Atoms/auth/auth-divider";
 import { AuthInputField } from "@/components/Atoms/auth/auth-input-field";
 import { AuthErrorMessage } from "@/components/Atoms/auth/auth-error-message";
+import { AuthServerError } from "@/components/Atoms/auth/auth-server-error";
 import { Button } from "@/components/Atoms/button";
 import { validateEmail, validatePassword } from "@/lib/auth-validation";
+import { setAccessTokenCookie } from "@/lib/auth-cookie";
+import { signIn, getApiErrorMessage } from "@/lib/api";
 
 interface SignInErrors {
   email?: string;
@@ -20,28 +25,39 @@ interface SignInErrors {
 }
 
 export default function SignInPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [fields, setFields] = useState({ email: "", password: "" });
-  const [errors, setErrors] = useState<SignInErrors>({});
+  const [fieldErrors, setFieldErrors] = useState<SignInErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  const { mutate, isPending, error: mutationError } = useMutation({
+    mutationFn: signIn,
+    onSuccess: (data) => {
+      const token = data?.accessToken;
+      if (token) setAccessTokenCookie(token);
+      router.push("/dashboard");
+    },
+  });
+
+  // Extract a readable server error message
+  const serverError = mutationError ? getApiErrorMessage(mutationError, "Sign in failed. Please try again.") : null;
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target;
     setFields((prev) => ({ ...prev, [name]: value }));
     if (touched[name]) {
-      const err =
-        name === "email" ? validateEmail(value) : validatePassword(value);
-      setErrors((prev) => ({ ...prev, [name]: err }));
+      const err = name === "email" ? validateEmail(value) : validatePassword(value);
+      setFieldErrors((prev) => ({ ...prev, [name]: err }));
     }
   }
 
   function handleBlur(e: React.FocusEvent<HTMLInputElement>) {
     const { name, value } = e.target;
     setTouched((prev) => ({ ...prev, [name]: true }));
-    const err =
-      name === "email" ? validateEmail(value) : validatePassword(value);
-    setErrors((prev) => ({ ...prev, [name]: err }));
+    const err = name === "email" ? validateEmail(value) : validatePassword(value);
+    setFieldErrors((prev) => ({ ...prev, [name]: err }));
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -50,11 +66,10 @@ export default function SignInPage() {
       email: validateEmail(fields.email),
       password: validatePassword(fields.password),
     };
-    setErrors(next);
+    setFieldErrors(next);
     setTouched({ email: true, password: true });
     if (next.email || next.password) return;
-    // TODO: call auth API
-    console.log("Sign-in submitted", fields);
+    mutate(fields);
   }
 
   return (
@@ -62,7 +77,6 @@ export default function SignInPage() {
       <AuthLeftPanel />
 
       <div className="flex flex-1 flex-col">
-        {/* Top nav */}
         <header className="flex items-center justify-end px-8 py-6">
           <p className="text-sm text-muted-foreground">
             Don&apos;t have an account?{" "}
@@ -72,7 +86,6 @@ export default function SignInPage() {
           </p>
         </header>
 
-        {/* Form */}
         <div className="flex flex-1 items-center justify-center px-6 pb-10">
           <div className="w-full max-w-[420px] flex flex-col gap-6">
             <AuthFormHeader
@@ -98,11 +111,11 @@ export default function SignInPage() {
                   onBlur={handleBlur}
                   placeholder="Enter your email"
                   autoComplete="email"
-                  error={errors.email}
+                  error={fieldErrors.email}
                   errorId="email-error"
                   leftIcon={<MailIcon className="h-4 w-4" />}
                 />
-                <AuthErrorMessage id="email-error" message={errors.email} />
+                <AuthErrorMessage id="email-error" message={fieldErrors.email} />
               </div>
 
               {/* Password */}
@@ -124,7 +137,7 @@ export default function SignInPage() {
                   onBlur={handleBlur}
                   placeholder="Enter your password"
                   autoComplete="current-password"
-                  error={errors.password}
+                  error={fieldErrors.password}
                   errorId="password-error"
                   leftIcon={<LockIcon className="h-4 w-4" />}
                   rightElement={
@@ -134,13 +147,11 @@ export default function SignInPage() {
                       className="text-muted-foreground hover:text-foreground transition-colors"
                       aria-label={showPassword ? "Hide password" : "Show password"}
                     >
-                      {showPassword
-                        ? <EyeOffIcon className="h-4 w-4" />
-                        : <EyeIcon className="h-4 w-4" />}
+                      {showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
                     </button>
                   }
                 />
-                <AuthErrorMessage id="password-error" message={errors.password} />
+                <AuthErrorMessage id="password-error" message={fieldErrors.password} />
               </div>
 
               {/* Remember me */}
@@ -154,8 +165,19 @@ export default function SignInPage() {
                 <span className="text-sm text-muted-foreground">Remember me</span>
               </label>
 
-              <Button type="submit" className="h-11 w-full text-sm font-semibold">
-                Sign in
+              {/* Server error */}
+              {serverError && <AuthServerError message={serverError} />}
+
+              <Button type="submit" className="h-11 w-full text-sm font-semibold" disabled={isPending}>
+                {isPending ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                    </svg>
+                    Signing in…
+                  </span>
+                ) : "Sign in"}
               </Button>
             </form>
 
