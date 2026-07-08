@@ -26,7 +26,7 @@ interface FormErrors {
 
 type ResetPasswordFormProps = {
   /** Called with the new password when the form is valid and submitted. */
-  onSubmit: (password: string) => Promise<void>;
+  onSubmit: (password: string, confirmpassword: string) => Promise<void>;
 };
 
 /**
@@ -84,7 +84,7 @@ export function ResetPasswordForm({ onSubmit }: ResetPasswordFormProps) {
 
     setIsSubmitting(true);
     try {
-      await onSubmit(fields.password);
+      await onSubmit(fields.password, fields.confirm);
     } finally {
       setIsSubmitting(false);
     }

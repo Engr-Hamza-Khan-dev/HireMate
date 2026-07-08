@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAuth } from "@/context/Authcontext";
 
 interface UserFooterProps {
   name: string;
@@ -15,7 +16,6 @@ interface UserFooterProps {
   avatarUrl?: string;
   collapsed?: boolean;
 }
-
 function getInitials(name: string): string {
   return name
     .split(" ")
@@ -26,6 +26,23 @@ function getInitials(name: string): string {
 }
 
 export function UserFooter({ name, email, avatarUrl, collapsed = false }: UserFooterProps) {
+  const { logout } = useAuth();
+
+  // Show a skeleton while user data hasn't arrived yet
+  if (!name) {
+    return (
+      <div className="flex items-center gap-3 rounded-lg px-3 py-2">
+        <div className="h-8 w-8 shrink-0 rounded-full bg-muted animate-pulse" />
+        {!collapsed && (
+          <div className="flex flex-col gap-1.5 flex-1">
+            <div className="h-3 w-24 rounded bg-muted animate-pulse" />
+            <div className="h-2.5 w-36 rounded bg-muted animate-pulse" />
+          </div>
+        )}
+      </div>
+    );
+  }
+
   const content = (
     <button
       className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
@@ -74,7 +91,10 @@ export function UserFooter({ name, email, avatarUrl, collapsed = false }: UserFo
         <DropdownMenuItem>Profile</DropdownMenuItem>
         <DropdownMenuItem>Account Settings</DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-destructive focus:text-destructive">
+        <DropdownMenuItem
+          className="text-destructive focus:text-destructive"
+          onClick={logout}
+        >
           Sign Out
         </DropdownMenuItem>
       </DropdownMenuContent>

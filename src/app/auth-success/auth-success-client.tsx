@@ -6,10 +6,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AuthLeftPanel } from "@/components/Molecules/auth/auth-left-panel";
 import { AuthSuccessCard } from "@/components/Atoms/auth/auth-success-card";
 import { AuthRedirectCountdown } from "@/components/Atoms/auth/auth-redirect-countdown";
+import { useAuth } from "@/context/Authcontext";
+import { setAccessTokenCookie } from "@/lib/auth-cookie";
 
 const PROVIDER_LABELS: Record<string, string> = {
-  google:   "Google",
-  linkedin: "LinkedIn",
+  google: "Google",
 };
 
 const REDIRECT_SECONDS = 3;
@@ -23,30 +24,46 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const LinkedInIcon = () => (
-  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="#0A66C2" aria-label="LinkedIn">
-    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-  </svg>
-);
-
 export function AuthSuccessClient() {
   const router = useRouter();
   const params = useSearchParams();
+  const { setUser } = useAuth();
 
-  const provider = params.get("provider") ?? "google";
-  const name     = params.get("name")     ?? "there";
-  const email    = params.get("email")    ?? "";
-  const avatar   = params.get("avatar")   ?? "";
-
-  const providerLabel = PROVIDER_LABELS[provider] ?? provider;
+  // Read everything from the URL — the backend sends this on redirect, no extra API call needed
+  const token    = params.get("accessToken") ?? "";
+  const provider = params.get("provider")    ?? "google";
+  const fullname = params.get("name")        ?? "";
+  const email    = params.get("email")       ?? "";
+  const avatar   = params.get("avatar")      ?? "";
+  const userId   = params.get("userId")      ?? "";
 
   useEffect(() => {
-    const t = setTimeout(
-      () => router.replace("/dashboard"),
-      REDIRECT_SECONDS * 1000
-    );
+    if (!token) {
+      router.replace("/sign-in");
+      return;
+    }
+
+    // 1. Persist token for middleware and API calls
+    setAccessTokenCookie(token);
+    localStorage.setItem("accessToken", token);
+
+    // 2. Build user from URL params — already available, zero latency
+    const user = {
+      _id: userId,
+      fullname,
+      email,
+      avatar: avatar || undefined,
+    };
+
+    // 3. Sync to context and localStorage so dashboard loads instantly
+    setUser(user);
+    localStorage.setItem("user", JSON.stringify(user));
+    localStorage.setItem("isAuthenticated", "true");
+
+    // 4. Redirect after countdown
+    const t = setTimeout(() => router.replace("/dashboard"), REDIRECT_SECONDS * 1000);
     return () => clearTimeout(t);
-  }, [router]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -59,33 +76,33 @@ export function AuthSuccessClient() {
           <div className="w-full max-w-[420px] flex flex-col gap-6">
 
             <AuthSuccessCard
-              title={`Welcome${name !== "there" ? `, ${name.split(" ")[0]}` : ""}!`}
-              subtitle={`Signed in with ${providerLabel} successfully.`}
+              title={fullname ? `Welcome, ${fullname.split(" ")[0]}!` : "Welcome!"}
+              subtitle={`Signed in with ${PROVIDER_LABELS[provider] ?? provider} successfully.`}
             >
-              {/* User info pill */}
               <div className="flex w-full items-center gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3">
                 {avatar ? (
                   <img
                     src={avatar}
-                    alt={name}
+                    alt={fullname}
                     width={40}
                     height={40}
                     className="h-10 w-10 rounded-full object-cover ring-2 ring-background"
                   />
                 ) : (
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                    {name.charAt(0).toUpperCase()}
+                    {fullname ? fullname.charAt(0).toUpperCase() : "?"}
                   </div>
                 )}
                 <div className="min-w-0 flex-1 text-left">
-                  <p className="truncate text-sm font-semibold text-foreground">{name}</p>
+                  <p className="truncate text-sm font-semibold text-foreground">
+                    {fullname || "—"}
+                  </p>
                   {email && (
                     <p className="truncate text-xs text-muted-foreground">{email}</p>
                   )}
                 </div>
                 <div className="ml-auto shrink-0">
-                  {provider === "google"   && <GoogleIcon />}
-                  {provider === "linkedin" && <LinkedInIcon />}
+                  {provider === "google" && <GoogleIcon />}
                 </div>
               </div>
             </AuthSuccessCard>

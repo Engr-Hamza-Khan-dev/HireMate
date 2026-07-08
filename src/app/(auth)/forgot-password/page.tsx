@@ -3,40 +3,46 @@
 import Link from "next/link";
 import { useState } from "react";
 import { MailIcon, ArrowLeftIcon } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
 
 import { AuthLeftPanel } from "@/components/Molecules/auth/auth-left-panel";
 import { AuthFormHeader } from "@/components/Molecules/auth/auth-form-header";
 import { AuthSecurityNote } from "@/components/Molecules/auth/auth-security-note";
 import { AuthInputField } from "@/components/Atoms/auth/auth-input-field";
 import { AuthErrorMessage } from "@/components/Atoms/auth/auth-error-message";
+import { AuthServerError } from "@/components/Atoms/auth/auth-server-error";
 import { Button } from "@/components/Atoms/button";
 import { validateEmail } from "@/lib/auth-validation";
+import { forgotPassword, getApiErrorMessage } from "@/lib/api";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
-  const [error, setError] = useState<string | undefined>();
+  const [fieldError, setFieldError] = useState<string | undefined>();
   const [touched, setTouched] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+
+  const { mutate, isPending, isSuccess, error: mutationError } = useMutation({
+    mutationFn: () => forgotPassword(email),
+  });
+
+  const serverError = mutationError ? getApiErrorMessage(mutationError, "Failed to send reset link. Please try again.") : null;
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setEmail(e.target.value);
-    if (touched) setError(validateEmail(e.target.value));
+    if (touched) setFieldError(validateEmail(e.target.value));
   }
 
   function handleBlur() {
     setTouched(true);
-    setError(validateEmail(email));
+    setFieldError(validateEmail(email));
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const err = validateEmail(email);
-    setError(err);
+    setFieldError(err);
     setTouched(true);
     if (err) return;
-    setSubmitted(true);
-    // TODO: call password reset API
-    console.log("Reset link sent to", email);
+    mutate();
   }
 
   return (
@@ -56,8 +62,7 @@ export default function ForgotPasswordPage() {
 
         <div className="flex flex-1 items-center justify-center px-6 pb-10">
           <div className="w-full max-w-[420px] flex flex-col gap-6">
-            {submitted ? (
-              /* Success state */
+            {isSuccess ? (
               <div className="flex flex-col items-center gap-4 text-center">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
                   <MailIcon className="h-7 w-7 text-primary" aria-hidden="true" />
@@ -72,13 +77,9 @@ export default function ForgotPasswordPage() {
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Didn&apos;t receive the email?{" "}
-                  <Button
-                    type="button"
-                    variant="link"
-                    className="h-auto p-0 font-semibold"
-                    onClick={() => setSubmitted(false)}
-                  >
-                    Try again
+                  <Button type="button" variant="link" className="h-auto p-0 font-semibold"
+                    onClick={() => mutate()}>
+                    Resend
                   </Button>
                 </p>
                 <Button asChild className="h-11 w-full text-sm font-semibold mt-2">
@@ -86,7 +87,6 @@ export default function ForgotPasswordPage() {
                 </Button>
               </div>
             ) : (
-              /* Form state */
               <>
                 <AuthFormHeader
                   title="Forgot your password?"
@@ -99,31 +99,33 @@ export default function ForgotPasswordPage() {
                       Email address
                     </label>
                     <AuthInputField
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={email}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      placeholder="Enter your email"
-                      autoComplete="email"
-                      error={error}
-                      errorId="email-error"
+                      id="email" name="email" type="email"
+                      value={email} onChange={handleChange} onBlur={handleBlur}
+                      placeholder="Enter your email" autoComplete="email"
+                      error={fieldError} errorId="email-error"
                       leftIcon={<MailIcon className="h-4 w-4" />}
                     />
-                    <AuthErrorMessage id="email-error" message={error} />
+                    <AuthErrorMessage id="email-error" message={fieldError} />
                   </div>
 
-                  <Button type="submit" className="h-11 w-full text-sm font-semibold">
-                    Send reset link
+                  {serverError && <AuthServerError message={serverError} />}
+
+                  <Button type="submit" className="h-11 w-full text-sm font-semibold" disabled={isPending}>
+                    {isPending ? (
+                      <span className="flex items-center gap-2">
+                        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                        </svg>
+                        Sending…
+                      </span>
+                    ) : "Send reset link"}
                   </Button>
                 </form>
 
                 <p className="text-center text-sm text-muted-foreground">
                   Remember your password?{" "}
-                  <Link href="/sign-in" className="font-semibold text-primary hover:underline">
-                    Sign in
-                  </Link>
+                  <Link href="/sign-in" className="font-semibold text-primary hover:underline">Sign in</Link>
                 </p>
 
                 <AuthSecurityNote />
