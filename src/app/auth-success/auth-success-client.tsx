@@ -27,7 +27,7 @@ const GoogleIcon = () => (
 export function AuthSuccessClient() {
   const router = useRouter();
   const params = useSearchParams();
-  const { setUser } = useAuth();
+  const { setUser, refetchUser } = useAuth();
 
   // Read everything from the URL — the backend sends this on redirect, no extra API call needed
   const token    = params.get("accessToken") ?? "";
@@ -35,7 +35,6 @@ export function AuthSuccessClient() {
   const fullname = params.get("name")        ?? "";
   const email    = params.get("email")       ?? "";
   const avatar   = params.get("avatar")      ?? "";
-  const userId   = params.get("userId")      ?? "";
 
   useEffect(() => {
     if (!token) {
@@ -46,19 +45,22 @@ export function AuthSuccessClient() {
     // 1. Persist token for middleware and API calls
     setAccessTokenCookie(token);
     localStorage.setItem("accessToken", token);
+    localStorage.setItem("isAuthenticated", "true");
 
-    // 2. Build user from URL params — already available, zero latency
-    const user = {
-      _id: userId,
+    // 2. Seed a minimal user from URL params for instant UI (no flicker)
+    //    The real user object is fetched below — this is just a placeholder
+    const partialUser = {
+      _id: "",
       fullname,
       email,
       avatar: avatar || undefined,
     };
+    setUser(partialUser);
+    localStorage.setItem("user", JSON.stringify(partialUser));
 
-    // 3. Sync to context and localStorage so dashboard loads instantly
-    setUser(user);
-    localStorage.setItem("user", JSON.stringify(user));
-    localStorage.setItem("isAuthenticated", "true");
+    // 3. Fetch the canonical user from the backend so _id and all fields are correct
+    //    This also ensures the sidebar and any other consumers get the real data
+    refetchUser();
 
     // 4. Redirect after countdown
     const t = setTimeout(() => router.replace("/dashboard"), REDIRECT_SECONDS * 1000);

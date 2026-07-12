@@ -1,6 +1,7 @@
 // app/layout.tsx
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Toaster } from "sonner";
 import { AuthProvider } from "@/context/Authcontext";
 import { QueryProvider } from "@/providers/query-provider";
 import "./globals.css";
@@ -33,6 +34,7 @@ export default function RootLayout({
         <QueryProvider>
           <AuthProvider>
             {children}
+            <Toaster richColors closeButton position="top-right" />
           </AuthProvider>
         </QueryProvider>
       </body>

@@ -5,11 +5,29 @@ interface ExperienceItemProps {
   position: string;
   company: string;
   location: string;
-  duration: string;
+  startDate: string;
+  endDate: string;
+  currentlyWorking: boolean;
   description: string;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  isDeleting?: boolean;
 }
 
-export default function ExperienceItem({ position, company, location, duration, description }: ExperienceItemProps) {
+function formatDate(iso: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+}
+
+export default function ExperienceItem({
+  position, company, location, startDate, endDate, currentlyWorking, description,
+  onEdit, onDelete, isDeleting = false,
+}: ExperienceItemProps) {
+  const dateRange = startDate
+    ? `${formatDate(startDate)} – ${currentlyWorking ? "Present" : formatDate(endDate)}`
+    : "";
+
   return (
     <div className="rounded-lg border border-border p-5">
       <div className="flex items-start justify-between gap-2">
@@ -20,18 +38,19 @@ export default function ExperienceItem({ position, company, location, duration, 
           </div>
           <p className="text-sm font-medium text-muted-foreground">{company}</p>
           <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Calendar className="h-4 w-4" />{duration}
-            </span>
-            <span className="flex items-center gap-1">
-              <MapPin className="h-4 w-4" />{location}
-            </span>
+            {dateRange && <span className="flex items-center gap-1"><Calendar className="h-4 w-4" />{dateRange}</span>}
+            {location  && <span className="flex items-center gap-1"><MapPin className="h-4 w-4" />{location}</span>}
           </div>
-          <p className="pt-2 text-sm text-muted-foreground">{description}</p>
+          {description && <p className="pt-1 text-sm text-muted-foreground">{description}</p>}
         </div>
         <div className="flex shrink-0 gap-1">
-          <Button size="icon" variant="ghost"><Pencil className="h-4 w-4" /></Button>
-          <Button size="icon" variant="ghost"><Trash2 className="h-4 w-4" /></Button>
+          <Button size="icon" variant="ghost" onClick={onEdit} aria-label="Edit">
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="ghost" onClick={onDelete} disabled={isDeleting}
+            aria-label="Delete" className="hover:text-destructive">
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
       </div>
     </div>
