@@ -1,52 +1,112 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Briefcase, Calendar, MapPin, Pencil, Trash2, Check, X } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Plus, Check, X } from "lucide-react";
 import { Button } from "@/components/Atoms/button";
 import { Input } from "@/components/ui/input";
-import type { Experience } from "@/components/Organism/profile";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import ExperienceItem from "@/components/Molecules/profile/experienceitem";
+import {
+  EXPERIENCE_QUERY_KEY, fetchExperiences, addExperience, updateExperience, deleteExperience,
+  type Experience,
+} from "@/lib/profile-api";
 
-interface Props {
-  items: Experience[];
-  onChange: (items: Experience[]) => void;
-}
+type DraftFields = Omit<Experience, "_id">;
 
-const EMPTY: Omit<Experience, "id"> = { position: "", company: "", location: "", duration: "", description: "" };
+const EMPTY: DraftFields = {
+  position: "",
+  company: "",
+  location: "",
+  startDate: "",
+  endDate: "",
+  currentlyWorking: false,
+  description: "",
+};
 
 function ExperienceForm({
-  value,
-  onChange,
-  onSave,
-  onCancel,
-  saveLabel = "Save",
+  value, onChange, onSave, onCancel, saveLabel = "Save", saving = false,
 }: {
-  value: Omit<Experience, "id">;
-  onChange: (v: Omit<Experience, "id">) => void;
+  value: DraftFields;
+  onChange: (v: DraftFields) => void;
   onSave: () => void;
   onCancel: () => void;
   saveLabel?: string;
+  saving?: boolean;
 }) {
-  const field = (key: keyof typeof EMPTY) => (
+  const field = (key: keyof DraftFields, placeholder: string, type = "text") => (
     <Input
-      placeholder={key.charAt(0).toUpperCase() + key.slice(1)}
-      value={value[key]}
+      type={type}
+      placeholder={placeholder}
+      value={value[key] as string}
       onChange={(e) => onChange({ ...value, [key]: e.target.value })}
     />
   );
+
+  const canSave =
+    value.position.trim() &&
+    value.company.trim() &&
+    value.location.trim() &&
+    value.startDate &&
+    (value.currentlyWorking || value.endDate) &&
+    value.description.trim();
+
   return (
-    <div className="rounded-lg border border-border p-5 space-y-3 bg-accent/30">
+    <div className="rounded-lg border border-border p-5 space-y-4 bg-accent/30">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="space-y-1"><label className="text-xs font-medium text-muted-foreground">Position *</label>{field("position")}</div>
-        <div className="space-y-1"><label className="text-xs font-medium text-muted-foreground">Company *</label>{field("company")}</div>
-        <div className="space-y-1"><label className="text-xs font-medium text-muted-foreground">Location</label>{field("location")}</div>
-        <div className="space-y-1"><label className="text-xs font-medium text-muted-foreground">Duration (e.g. 2020 - Present)</label>{field("duration")}</div>
-        <div className="space-y-1 sm:col-span-2"><label className="text-xs font-medium text-muted-foreground">Description</label>{field("description")}</div>
+        <div className="space-y-1">
+          <Label className="text-xs font-medium text-muted-foreground">Position *</Label>
+          {field("position", "e.g. Software Engineer")}
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs font-medium text-muted-foreground">Company *</Label>
+          {field("company", "e.g. Acme Corp")}
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs font-medium text-muted-foreground">Location *</Label>
+          {field("location", "e.g. New York, USA")}
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs font-medium text-muted-foreground">Start Date *</Label>
+          {field("startDate", "", "date")}
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs font-medium text-muted-foreground">End Date {value.currentlyWorking ? "" : "*"}</Label>
+          <Input
+            type="date"
+            placeholder=""
+            value={value.endDate}
+            disabled={value.currentlyWorking}
+            onChange={(e) => onChange({ ...value, endDate: e.target.value })}
+          />
+        </div>
+        <div className="flex items-center gap-2 pt-5">
+          <Checkbox
+            id="currentlyWorking"
+            checked={value.currentlyWorking}
+            onCheckedChange={(checked) =>
+              onChange({ ...value, currentlyWorking: checked === true, endDate: checked ? "" : value.endDate })
+            }
+          />
+          <Label htmlFor="currentlyWorking" className="text-sm cursor-pointer">
+            I currently work here
+          </Label>
+        </div>
+        <div className="space-y-1 sm:col-span-2">
+          <Label className="text-xs font-medium text-muted-foreground">Description *</Label>
+          <Input
+            placeholder="Describe your role and responsibilities…"
+            value={value.description}
+            onChange={(e) => onChange({ ...value, description: e.target.value })}
+          />
+        </div>
       </div>
       <div className="flex gap-2 pt-1">
-        <Button size="sm" onClick={onSave} disabled={!value.position.trim() || !value.company.trim()} className="gap-1.5">
-          <Check className="h-3.5 w-3.5" />{saveLabel}
+        <Button size="sm" onClick={onSave} disabled={!canSave || saving} className="gap-1.5">
+          <Check className="h-3.5 w-3.5" />{saving ? "Saving…" : saveLabel}
         </Button>
-        <Button size="sm" variant="ghost" onClick={onCancel} className="gap-1.5">
+        <Button size="sm" variant="ghost" onClick={onCancel} className="gap-1.5" disabled={saving}>
           <X className="h-3.5 w-3.5" />Cancel
         </Button>
       </div>
@@ -54,29 +114,41 @@ function ExperienceForm({
   );
 }
 
-export default function ExperienceSection({ items, onChange }: Props) {
-  const [adding, setAdding]   = useState(false);
-  const [draft, setDraft]     = useState<Omit<Experience, "id">>(EMPTY);
-  const [editId, setEditId]   = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState<Omit<Experience, "id">>(EMPTY);
+export default function ExperienceSection() {
+  const queryClient = useQueryClient();
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState<DraftFields>(EMPTY);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<DraftFields>(EMPTY);
 
-  const handleAdd = () => {
-    onChange([...items, { ...draft, id: crypto.randomUUID() }]);
-    setDraft(EMPTY);
-    setAdding(false);
-  };
+  const { data: items = [], isLoading } = useQuery({
+    queryKey: EXPERIENCE_QUERY_KEY,
+    queryFn: fetchExperiences,
+  });
 
-  const handleDelete = (id: string) => onChange(items.filter((i) => i.id !== id));
+  const addMutation = useMutation({
+    mutationFn: addExperience,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: EXPERIENCE_QUERY_KEY });
+      setAdding(false);
+      setDraft(EMPTY);
+    },
+  });
 
-  const startEdit = (item: Experience) => {
-    setEditId(item.id);
-    setEditDraft({ position: item.position, company: item.company, location: item.location, duration: item.duration, description: item.description });
-  };
+  const updateMutation = useMutation({
+    mutationFn: updateExperience,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: EXPERIENCE_QUERY_KEY });
+      setEditId(null);
+    },
+  });
 
-  const handleEditSave = () => {
-    onChange(items.map((i) => i.id === editId ? { ...i, ...editDraft } : i));
-    setEditId(null);
-  };
+  const deleteMutation = useMutation({
+    mutationFn: deleteExperience,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: EXPERIENCE_QUERY_KEY }),
+  });
+
+  if (isLoading) return <SectionSkeleton rows={2} />;
 
   return (
     <div className="space-y-4">
@@ -93,7 +165,14 @@ export default function ExperienceSection({ items, onChange }: Props) {
       </div>
 
       {adding && (
-        <ExperienceForm value={draft} onChange={setDraft} onSave={handleAdd} onCancel={() => { setAdding(false); setDraft(EMPTY); }} saveLabel="Add" />
+        <ExperienceForm
+          value={draft}
+          onChange={setDraft}
+          onSave={() => addMutation.mutate(draft)}
+          onCancel={() => { setAdding(false); setDraft(EMPTY); }}
+          saveLabel="Add"
+          saving={addMutation.isPending}
+        />
       )}
 
       {items.length === 0 && !adding && (
@@ -103,31 +182,53 @@ export default function ExperienceSection({ items, onChange }: Props) {
       )}
 
       {items.map((item) =>
-        editId === item.id ? (
-          <ExperienceForm key={item.id} value={editDraft} onChange={setEditDraft} onSave={handleEditSave} onCancel={() => setEditId(null)} saveLabel="Update" />
+        editId === item._id ? (
+          <ExperienceForm
+            key={item._id}
+            value={editDraft}
+            onChange={setEditDraft}
+            onSave={() => updateMutation.mutate({ _id: item._id, ...editDraft })}
+            onCancel={() => setEditId(null)}
+            saveLabel="Update"
+            saving={updateMutation.isPending}
+          />
         ) : (
-          <div key={item.id} className="rounded-lg border border-border p-5">
-            <div className="flex items-start justify-between gap-2">
-              <div className="space-y-2 min-w-0">
-                <div className="flex items-center gap-2">
-                  <Briefcase className="h-5 w-5 shrink-0 text-primary" />
-                  <h3 className="font-semibold text-foreground">{item.position}</h3>
-                </div>
-                <p className="text-sm font-medium text-muted-foreground">{item.company}</p>
-                <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                  {item.duration && <span className="flex items-center gap-1"><Calendar className="h-4 w-4" />{item.duration}</span>}
-                  {item.location && <span className="flex items-center gap-1"><MapPin className="h-4 w-4" />{item.location}</span>}
-                </div>
-                {item.description && <p className="pt-1 text-sm text-muted-foreground">{item.description}</p>}
-              </div>
-              <div className="flex shrink-0 gap-1">
-                <Button size="icon" variant="ghost" onClick={() => startEdit(item)} aria-label="Edit"><Pencil className="h-4 w-4" /></Button>
-                <Button size="icon" variant="ghost" onClick={() => handleDelete(item.id)} aria-label="Delete" className="hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
-              </div>
-            </div>
-          </div>
+          <ExperienceItem
+            key={item._id}
+            position={item.position}
+            company={item.company}
+            location={item.location}
+            startDate={item.startDate}
+            endDate={item.endDate}
+            currentlyWorking={item.currentlyWorking}
+            description={item.description}
+            onEdit={() => {
+              setEditId(item._id);
+              setEditDraft({
+                position: item.position,
+                company: item.company,
+                location: item.location,
+                startDate: item.startDate,
+                endDate: item.endDate,
+                currentlyWorking: item.currentlyWorking,
+                description: item.description,
+              });
+            }}
+            onDelete={() => deleteMutation.mutate(item._id)}
+            isDeleting={deleteMutation.isPending}
+          />
         )
       )}
+    </div>
+  );
+}
+
+function SectionSkeleton({ rows }: { rows: number }) {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="h-24 rounded-lg border border-border bg-muted/40 animate-pulse" />
+      ))}
     </div>
   );
 }

@@ -1,51 +1,120 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, GraduationCap, Calendar, MapPin, Pencil, Trash2, Check, X } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Plus, Check, X } from "lucide-react";
 import { Button } from "@/components/Atoms/button";
 import { Input } from "@/components/ui/input";
-import type { Education } from "@/components/Organism/profile";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import EducationItem from "@/components/Molecules/profile/educationitem";
+import {
+  EDUCATION_QUERY_KEY, fetchEducation, addEducation, updateEducation, deleteEducation,
+  type Education,
+} from "@/lib/profile-api";
 
-interface Props {
-  items: Education[];
-  onChange: (items: Education[]) => void;
-}
+type DraftFields = Omit<Education, "_id">;
 
-const EMPTY: Omit<Education, "id"> = { degree: "", institution: "", location: "", duration: "", description: "" };
+const EMPTY: DraftFields = {
+  institution: "",
+  degree: "",
+  fieldOfStudy: "",
+  startDate: "",
+  endDate: "",
+  currentlyStudying: false,
+  description: "",
+};
 
 function EducationForm({
-  value,
-  onChange,
-  onSave,
-  onCancel,
-  saveLabel = "Save",
+  value, onChange, onSave, onCancel, saveLabel = "Save", saving = false,
 }: {
-  value: Omit<Education, "id">;
-  onChange: (v: Omit<Education, "id">) => void;
+  value: DraftFields;
+  onChange: (v: DraftFields) => void;
   onSave: () => void;
   onCancel: () => void;
   saveLabel?: string;
+  saving?: boolean;
 }) {
-  const field = (key: keyof typeof EMPTY, label: string) => (
-    <div className="space-y-1">
-      <label className="text-xs font-medium text-muted-foreground">{label}</label>
-      <Input value={value[key]} onChange={(e) => onChange({ ...value, [key]: e.target.value })} placeholder={label} />
-    </div>
-  );
+  const canSave =
+    value.institution.trim() &&
+    value.degree.trim() &&
+    value.fieldOfStudy.trim() &&
+    value.startDate &&
+    (value.currentlyStudying || value.endDate) &&
+    value.description.trim();
+
   return (
-    <div className="rounded-lg border border-border p-5 space-y-3 bg-accent/30">
+    <div className="rounded-lg border border-border p-5 space-y-4 bg-accent/30">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {field("degree",      "Degree / Qualification *")}
-        {field("institution", "Institution *")}
-        {field("location",    "Location")}
-        {field("duration",    "Duration (e.g. 2016 - 2020)")}
-        <div className="space-y-1 sm:col-span-2">{field("description", "Description")}</div>
+        <div className= "space-y-1">
+          <Label className="text-xs font-medium text-muted-foreground">Institution *</Label>
+          <Input
+            placeholder="e.g. MIT"
+            value={value.institution}
+            onChange={(e) => onChange({ ...value, institution: e.target.value })}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs font-medium text-muted-foreground">Degree *</Label>
+          <Input
+            placeholder="e.g. Bachelor of Science"
+            value={value.degree}
+            onChange={(e) => onChange({ ...value, degree: e.target.value })}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs font-medium text-muted-foreground">Field of Study *</Label>
+          <Input
+            placeholder="e.g. Computer Science"
+            value={value.fieldOfStudy}
+            onChange={(e) => onChange({ ...value, fieldOfStudy: e.target.value })}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs font-medium text-muted-foreground">Start Date *</Label>
+          <Input
+            type="date"
+            value={value.startDate}
+            onChange={(e) => onChange({ ...value, startDate: e.target.value })}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs font-medium text-muted-foreground">
+            End Date {value.currentlyStudying ? "" : "*"}
+          </Label>
+          <Input
+            type="date"
+            value={value.endDate}
+            disabled={value.currentlyStudying}
+            onChange={(e) => onChange({ ...value, endDate: e.target.value })}
+          />
+        </div>
+        <div className="flex items-center gap-2 pt-5">
+          <Checkbox
+            id="currentlyStudying"
+            checked={value.currentlyStudying}
+            onCheckedChange={(checked) =>
+              onChange({ ...value, currentlyStudying: checked === true, endDate: checked ? "" : value.endDate })
+            }
+          />
+          <Label htmlFor="currentlyStudying" className="text-sm cursor-pointer">
+            I currently study here
+          </Label>
+        </div>
+        <div className="space-y-1 sm:col-span-2">
+          <Label className="text-xs font-medium text-muted-foreground">Description *</Label>
+          <Input
+            placeholder="Briefly describe your studies, achievements…"
+            value={value.description}
+            onChange={(e) => onChange({ ...value, description: e.target.value })}
+          />
+        </div>
       </div>
       <div className="flex gap-2 pt-1">
-        <Button size="sm" onClick={onSave} disabled={!value.degree.trim() || !value.institution.trim()} className="gap-1.5">
-          <Check className="h-3.5 w-3.5" />{saveLabel}
+        <Button size="sm" onClick={onSave} disabled={!canSave || saving} className="gap-1.5">
+          <Check className="h-3.5 w-3.5" />{saving ? "Saving…" : saveLabel}
         </Button>
-        <Button size="sm" variant="ghost" onClick={onCancel} className="gap-1.5">
+        <Button size="sm" variant="ghost" onClick={onCancel} className="gap-1.5" disabled={saving}>
           <X className="h-3.5 w-3.5" />Cancel
         </Button>
       </div>
@@ -53,29 +122,31 @@ function EducationForm({
   );
 }
 
-export default function EducationSection({ items, onChange }: Props) {
-  const [adding, setAdding]       = useState(false);
-  const [draft, setDraft]         = useState<Omit<Education, "id">>(EMPTY);
-  const [editId, setEditId]       = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState<Omit<Education, "id">>(EMPTY);
+export default function EducationSection() {
+  const queryClient = useQueryClient();
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState<DraftFields>(EMPTY);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<DraftFields>(EMPTY);
 
-  const handleAdd = () => {
-    onChange([...items, { ...draft, id: crypto.randomUUID() }]);
-    setDraft(EMPTY);
-    setAdding(false);
-  };
+  const { data: items = [], isLoading } = useQuery({
+    queryKey: EDUCATION_QUERY_KEY,
+    queryFn: fetchEducation,
+  });
 
-  const handleDelete = (id: string) => onChange(items.filter((i) => i.id !== id));
+  const inv = () => queryClient.invalidateQueries({ queryKey: EDUCATION_QUERY_KEY });
 
-  const startEdit = (item: Education) => {
-    setEditId(item.id);
-    setEditDraft({ degree: item.degree, institution: item.institution, location: item.location, duration: item.duration, description: item.description });
-  };
+  const addMut = useMutation({
+    mutationFn: addEducation,
+    onSuccess: () => { inv(); setAdding(false); setDraft(EMPTY); },
+  });
+  const updateMut = useMutation({
+    mutationFn: updateEducation,
+    onSuccess: () => { inv(); setEditId(null); },
+  });
+  const deleteMut = useMutation({ mutationFn: deleteEducation, onSuccess: inv });
 
-  const handleEditSave = () => {
-    onChange(items.map((i) => i.id === editId ? { ...i, ...editDraft } : i));
-    setEditId(null);
-  };
+  if (isLoading) return <Skeleton rows={2} />;
 
   return (
     <div className="space-y-4">
@@ -92,7 +163,14 @@ export default function EducationSection({ items, onChange }: Props) {
       </div>
 
       {adding && (
-        <EducationForm value={draft} onChange={setDraft} onSave={handleAdd} onCancel={() => { setAdding(false); setDraft(EMPTY); }} saveLabel="Add" />
+        <EducationForm
+          value={draft}
+          onChange={setDraft}
+          onSave={() => addMut.mutate(draft)}
+          onCancel={() => { setAdding(false); setDraft(EMPTY); }}
+          saveLabel="Add"
+          saving={addMut.isPending}
+        />
       )}
 
       {items.length === 0 && !adding && (
@@ -102,31 +180,53 @@ export default function EducationSection({ items, onChange }: Props) {
       )}
 
       {items.map((item) =>
-        editId === item.id ? (
-          <EducationForm key={item.id} value={editDraft} onChange={setEditDraft} onSave={handleEditSave} onCancel={() => setEditId(null)} saveLabel="Update" />
+        editId === item._id ? (
+          <EducationForm
+            key={item._id}
+            value={editDraft}
+            onChange={setEditDraft}
+            onSave={() => updateMut.mutate({ _id: item._id, ...editDraft })}
+            onCancel={() => setEditId(null)}
+            saveLabel="Update"
+            saving={updateMut.isPending}
+          />
         ) : (
-          <div key={item.id} className="rounded-lg border border-border p-5">
-            <div className="flex items-start justify-between gap-2">
-              <div className="space-y-2 min-w-0">
-                <div className="flex items-center gap-2">
-                  <GraduationCap className="h-5 w-5 shrink-0 text-primary" />
-                  <h3 className="font-semibold text-foreground">{item.degree}</h3>
-                </div>
-                <p className="text-sm font-medium text-muted-foreground">{item.institution}</p>
-                <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                  {item.duration && <span className="flex items-center gap-1"><Calendar className="h-4 w-4" />{item.duration}</span>}
-                  {item.location && <span className="flex items-center gap-1"><MapPin className="h-4 w-4" />{item.location}</span>}
-                </div>
-                {item.description && <p className="pt-1 text-sm text-muted-foreground">{item.description}</p>}
-              </div>
-              <div className="flex shrink-0 gap-1">
-                <Button size="icon" variant="ghost" onClick={() => startEdit(item)} aria-label="Edit"><Pencil className="h-4 w-4" /></Button>
-                <Button size="icon" variant="ghost" onClick={() => handleDelete(item.id)} aria-label="Delete" className="hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
-              </div>
-            </div>
-          </div>
+          <EducationItem
+            key={item._id}
+            institution={item.institution}
+            degree={item.degree}
+            fieldOfStudy={item.fieldOfStudy}
+            startDate={item.startDate}
+            endDate={item.endDate}
+            currentlyStudying={item.currentlyStudying}
+            description={item.description}
+            onEdit={() => {
+              setEditId(item._id);
+              setEditDraft({
+                institution: item.institution,
+                degree: item.degree,
+                fieldOfStudy: item.fieldOfStudy,
+                startDate: item.startDate,
+                endDate: item.endDate,
+                currentlyStudying: item.currentlyStudying,
+                description: item.description,
+              });
+            }}
+            onDelete={() => deleteMut.mutate(item._id)}
+            isDeleting={deleteMut.isPending}
+          />
         )
       )}
+    </div>
+  );
+}
+
+function Skeleton({ rows }: { rows: number }) {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="h-24 rounded-lg border border-border bg-muted/40 animate-pulse" />
+      ))}
     </div>
   );
 }

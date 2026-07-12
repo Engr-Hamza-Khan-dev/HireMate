@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -16,6 +19,7 @@ interface UserFooterProps {
   avatarUrl?: string;
   collapsed?: boolean;
 }
+
 function getInitials(name: string): string {
   return name
     .split(" ")
@@ -25,25 +29,33 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
+function Skeleton({ collapsed }: { collapsed: boolean }) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg px-3 py-2">
+      <div className="h-8 w-8 shrink-0 rounded-full bg-muted animate-pulse" />
+      {!collapsed && (
+        <div className="flex flex-col gap-1.5 flex-1">
+          <div className="h-3 w-24 rounded bg-muted animate-pulse" />
+          <div className="h-2.5 w-36 rounded bg-muted animate-pulse" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function UserFooter({ name, email, avatarUrl, collapsed = false }: UserFooterProps) {
   const { logout } = useAuth();
+  // Defer rendering the real content until after hydration so server and
+  // client always produce the same initial HTML (the skeleton).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
-  // Show a skeleton while user data hasn't arrived yet
-  if (!name) {
-    return (
-      <div className="flex items-center gap-3 rounded-lg px-3 py-2">
-        <div className="h-8 w-8 shrink-0 rounded-full bg-muted animate-pulse" />
-        {!collapsed && (
-          <div className="flex flex-col gap-1.5 flex-1">
-            <div className="h-3 w-24 rounded bg-muted animate-pulse" />
-            <div className="h-2.5 w-36 rounded bg-muted animate-pulse" />
-          </div>
-        )}
-      </div>
-    );
+  // Before mount OR while user data hasn't loaded yet — show skeleton
+  if (!mounted || !name) {
+    return <Skeleton collapsed={collapsed} />;
   }
 
-  const content = (
+  const trigger = (
     <button
       className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
       aria-label="User menu"
@@ -69,9 +81,7 @@ export function UserFooter({ name, email, avatarUrl, collapsed = false }: UserFo
   if (collapsed) {
     return (
       <Tooltip>
-        <TooltipTrigger asChild>
-          {content}
-        </TooltipTrigger>
+        <TooltipTrigger asChild>{trigger}</TooltipTrigger>
         <TooltipContent side="right" align="center">
           <div className="flex flex-col">
             <span className="font-medium">{name}</span>
@@ -84,9 +94,7 @@ export function UserFooter({ name, email, avatarUrl, collapsed = false }: UserFo
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        {content}
-      </DropdownMenuTrigger>
+      <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
       <DropdownMenuContent align="end" side="top" className="w-52">
         <DropdownMenuItem>Profile</DropdownMenuItem>
         <DropdownMenuItem>Account Settings</DropdownMenuItem>

@@ -19,30 +19,56 @@ apiClient.interceptors.request.use((config) => {
 // so every useMutation gets a clean, readable error instead of axios internals
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    const data = error?.response?.data;
+  async (error) => {
+    const originalRequest =
+      error.config;
 
-    let message: string | undefined;
+    if (
+      error.response?.status ===
+      401 &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes(
+        "/refresh-token"
+      )
+    ) {
+      originalRequest._retry =
+        true;
 
-    if (typeof data === "string" && data.includes("<")) {
-      // Backend returned an HTML error page — extract text from <pre> or <body>
-      const pre = data.match(/<pre[^>]*>([\s\S]*?)<\/pre>/i);
-      const body = data.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-      const raw = (pre?.[1] ?? body?.[1] ?? "").replace(/<[^>]+>/g, "").trim();
-      message = raw || undefined;
-    } else if (typeof data === "object" && data !== null) {
-      message =
-        data?.message
-        ?? data?.error
-        ?? data?.msg
-        ?? data?.detail
-        ?? (Array.isArray(data?.errors)
-          ? (data.errors[0]?.message ?? data.errors[0]?.msg)
-          : undefined)
-        ?? data?.data?.message;
+      try {
+        await axios.post(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/user/refresh-token`,
+          {},
+          {
+            withCredentials: true,
+          }
+        );
+
+        return apiClient(
+          originalRequest
+        );
+      } catch (err) {
+        localStorage.removeItem(
+          "accessToken"
+        );
+        localStorage.removeItem(
+          "user"
+        );
+
+        if (
+          window.location.pathname !==
+          "/sign-in"
+        ) {
+          window.location.href =
+            "/sign-in";
+        }
+
+        return Promise.reject(
+          err
+        );
+      }
     }
 
-    return Promise.reject(new Error(message ?? "Something went wrong. Please try again."));
+    return Promise.reject(error);
   }
 );
 
@@ -50,7 +76,15 @@ apiClient.interceptors.response.use(
 
 export async function fetchCurrentUser(): Promise<User> {
   const res = await apiClient.get("/api/v1/user/me");
-  return res.data.data ?? res.data;
+  const raw = res.data.data ?? res.data;
+  // Backend returns `id` (not `_id`) — normalise to match the User interface
+  return {
+    _id: raw._id ?? raw.id ?? "",
+    fullname: raw.fullname ?? "",
+    email: raw.email ?? "",
+    avatar: raw.avatar ?? undefined,
+    isVerified: raw.isverified ?? raw.isVerified ?? false,
+  };
 }
 
 /* ─── Mutation functions ─────────────────────────────────────────── */
