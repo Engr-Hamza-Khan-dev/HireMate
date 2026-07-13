@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Pencil, X } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ProfileAvatar from "@/components/Molecules/profile/profile-avatar";
 import InputField from "@/components/Molecules/profile/inputfield";
@@ -17,15 +18,10 @@ import { USER_QUERY_KEY } from "@/context/Authcontext";
 import type { User } from "@/context/Authcontext";
 
 const DEFAULT: PersonalInfoPayload = {
-  firstName: "",
-  lastName: "",
-  email: "",
-  phone: "",
-  jobTitle: "",
-  location: "",
+  firstName: "", lastName: "", email: "", phone: "",
+  jobTitle: "", location: "", avatar: "",
 };
 
-/** A single read-only row: label + value */
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="space-y-0.5">
@@ -44,30 +40,61 @@ export default function PersonalInfoSection() {
     queryFn: fetchPersonalInfo,
   });
 
-  // local draft used only while editing
   const [draft, setDraft] = useState<PersonalInfoPayload>(DEFAULT);
   const [editing, setEditing] = useState(false);
 
-  // when server data arrives, seed the draft (only if not actively editing)
+  // Selected file + local preview URL
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const previewUrlRef = useRef<string>("");
+
   useEffect(() => {
     if (server && !editing) setDraft(server);
   }, [server, editing]);
 
+  // Clean up the object URL when it changes or component unmounts
+  useEffect(() => {
+    return () => {
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    };
+  }, []);
+
+  const handleFileSelect = (file: File) => {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    const url = URL.createObjectURL(file);
+    previewUrlRef.current = url;
+    setAvatarFile(file);
+    setPreviewUrl(url);
+    // Immediately enter edit mode so the user sees the preview
+    if (!editing) setEditing(true);
+  };
+
   const { mutate: save, isPending: saving } = useMutation({
-    mutationFn: updatePersonalInfo,
-    onSuccess: (_data, variables) => {
-      // 1. Immediately patch the cached user so the sidebar updates right now
-      //    — no waiting for a network round-trip
-      const fullName = `${variables.firstName} ${variables.lastName}`.trim();
+    mutationFn: ({ payload, file }: { payload: PersonalInfoPayload; file?: File }) =>
+      updatePersonalInfo(payload, file ?? undefined),
+    onSuccess: (result, { payload }) => {
+      const fullName = `${payload.firstName} ${payload.lastName}`.trim();
+
+      // Patch the auth user cache so sidebar name + avatar update instantly
       queryClient.setQueryData<User>(USER_QUERY_KEY, (prev) =>
-        prev ? { ...prev, fullname: fullName } : prev
+        prev
+          ? { ...prev, fullname: fullName, avatar: result.avatar ?? prev.avatar }
+          : prev
       );
 
-      // 2. Refresh profile section data
+      // Refresh profile data
       queryClient.invalidateQueries({ queryKey: PERSONAL_QUERY_KEY });
 
+      // Clean up preview
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = "";
+      setPreviewUrl("");
+      setAvatarFile(null);
       setEditing(false);
+
+      toast.success("Profile updated");
     },
+    onError: () => toast.error("Failed to update profile"),
   });
 
   const set =
@@ -82,13 +109,18 @@ export default function PersonalInfoSection() {
 
   const handleCancel = () => {
     if (server) setDraft(server);
+    // Discard file preview
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    previewUrlRef.current = "";
+    setPreviewUrl("");
+    setAvatarFile(null);
     setEditing(false);
   };
 
-  // in view mode show server data; in edit mode show the draft
   const display = editing ? draft : (server ?? draft);
-  const displayName =
-    [display.firstName, display.lastName].filter(Boolean).join(" ") || "Your Name";
+  const displayName = [display.firstName, display.lastName].filter(Boolean).join(" ") || "Your Name";
+  // Show local preview while editing; otherwise use server avatar
+  const avatarSrc = previewUrl || display.avatar || "";
 
   return (
     <Card>
@@ -97,29 +129,16 @@ export default function PersonalInfoSection() {
 
         <div className="flex items-center gap-2">
           {!editing && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleEdit}
-              disabled={isLoading}
-            >
-              <Pencil className="mr-1.5 h-3.5 w-3.5" />
-              Edit
+            <Button size="sm" variant="outline" onClick={handleEdit} disabled={isLoading}>
+              <Pencil className="mr-1.5 h-3.5 w-3.5" />Edit
             </Button>
           )}
-
           {editing && (
             <>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleCancel}
-                disabled={saving}
-              >
-                <X className="mr-1.5 h-3.5 w-3.5" />
-                Cancel
+              <Button size="sm" variant="outline" onClick={handleCancel} disabled={saving}>
+                <X className="mr-1.5 h-3.5 w-3.5" />Cancel
               </Button>
-              <Button size="sm" onClick={() => save(draft)} disabled={saving}>
+              <Button size="sm" onClick={() => save({ payload: draft, file: avatarFile ?? undefined })} disabled={saving}>
                 {saving ? "Saving…" : "Save"}
               </Button>
             </>
@@ -131,6 +150,8 @@ export default function PersonalInfoSection() {
         <ProfileAvatar
           name={displayName}
           role={display.jobTitle || "Your Professional Title"}
+          image={avatarSrc || undefined}
+          onFileSelect={handleFileSelect}
         />
 
         {/* ── View mode ── */}
@@ -148,13 +169,12 @@ export default function PersonalInfoSection() {
         {/* ── Edit mode ── */}
         {editing && (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <InputField id="firstName" label="First Name"          placeholder="John"                     value={draft.firstName} onChange={set("firstName")} />
-            <InputField id="lastName"  label="Last Name"           placeholder="Doe"                      value={draft.lastName}  onChange={set("lastName")}  />
-            {/* Email is read-only — shown as plain text even in edit mode */}
+            <InputField id="firstName" label="First Name"         placeholder="John"                     value={draft.firstName} onChange={set("firstName")} />
+            <InputField id="lastName"  label="Last Name"          placeholder="Doe"                      value={draft.lastName}  onChange={set("lastName")}  />
             <InfoRow label="Email" value={draft.email} />
-            <InputField id="phone"     label="Phone"               placeholder="+1 234 567 890"           value={draft.phone}     onChange={set("phone")}     />
-            <InputField id="jobTitle"  label="Professional Title"  placeholder="Senior Software Engineer" value={draft.jobTitle}  onChange={set("jobTitle")}  />
-            <InputField id="location"  label="Location"            placeholder="New York, USA"            value={draft.location}  onChange={set("location")}  />
+            <InputField id="phone"     label="Phone"              placeholder="+1 234 567 890"           value={draft.phone}     onChange={set("phone")}     />
+            <InputField id="jobTitle"  label="Professional Title" placeholder="Senior Software Engineer" value={draft.jobTitle}  onChange={set("jobTitle")}  />
+            <InputField id="location"  label="Location"           placeholder="New York, USA"            value={draft.location}  onChange={set("location")}  />
           </div>
         )}
       </CardContent>
