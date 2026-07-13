@@ -31,21 +31,22 @@ export interface PersonalInfoPayload {
     phone: string;
     jobTitle: string;
     location: string;
+    avatar: string;   // Cloudinary URL (read-only from server, uploadable via file)
 }
 
-/** Raw shape returned by GET /api/v1/users/me */
+/** Raw shape returned by GET /api/v1/user/me */
 interface BackendProfile {
     fullname?: string;
     email?: string;
     phone?: string;
     professionalTitle?: string;
     location?: string;
+    avatar?: string;
 }
 
 export const PERSONAL_QUERY_KEY = ["profile", "personal"] as const;
 
 export async function fetchPersonalInfo(): Promise<PersonalInfoPayload> {
-    // The backend exposes user profile data on /api/v1/users/me
     const res = await apiClient.get("/api/v1/user/me");
     const raw: BackendProfile = res.data.data ?? res.data;
 
@@ -61,18 +62,32 @@ export async function fetchPersonalInfo(): Promise<PersonalInfoPayload> {
         phone:    raw.phone             ?? "",
         jobTitle: raw.professionalTitle ?? "",
         location: raw.location          ?? "",
+        avatar:   raw.avatar            ?? "",
     };
 }
 
-export async function updatePersonalInfo(payload: PersonalInfoPayload): Promise<void> {
-    // Backend PUT /api/v1/profile/update expects: fullName, email, phone, professionalTitle, location
-    await apiClient.put("/api/v1/profile/update", {
-        fullName:          `${payload.firstName} ${payload.lastName}`.trim(),
-        email:             payload.email    ?? "",
-        phone:             payload.phone    ?? "",
-        professionalTitle: payload.jobTitle ?? "",
-        location:          payload.location ?? "",
+/**
+ * Send profile update as multipart/form-data so the avatar file can be
+ * included. The backend ignores email — it is NOT sent.
+ */
+export async function updatePersonalInfo(
+    payload: PersonalInfoPayload,
+    avatarFile?: File,
+): Promise<{ avatar?: string }> {
+    const form = new FormData();
+    form.append("fullName",          `${payload.firstName} ${payload.lastName}`.trim());
+    form.append("phone",             payload.phone    ?? "");
+    form.append("professionalTitle", payload.jobTitle ?? "");
+    form.append("location",          payload.location ?? "");
+    if (avatarFile) form.append("avatar", avatarFile);
+
+    const res = await apiClient.put("/api/v1/profile/update", form, {
+        headers: { "Content-Type": "multipart/form-data" },
     });
+
+    // Backend returns { data: { user: { avatar, ... } } }
+    const user = res.data?.data?.user ?? res.data?.data ?? {};
+    return { avatar: user.avatar ?? undefined };
 }
 
 /* ─── Preferences ────────────────────────────────────────────────── */
