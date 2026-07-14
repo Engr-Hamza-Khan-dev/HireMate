@@ -11,30 +11,51 @@ import { SearchInput } from "@/components/Atoms/search-input";
 export type JobsHeaderProps = ComponentProps<"header"> & {
   searchValue?: string;
   onSearchChange?: (value: string) => void;
-  locationValue?: string;
-  onLocationChange?: (value: string) => void;
+  countryValue?: string;
+  onCountryChange?: (value: string) => void;
+  workTypeValue?: string;
+  onWorkTypeChange?: (value: string) => void;
   jobTypeValue?: string;
   onJobTypeChange?: (value: string) => void;
   experienceValue?: string;
   onExperienceChange?: (value: string) => void;
   sortValue?: string;
   onSortChange?: (value: string) => void;
+  onRefresh?: () => void;
+  isSyncing?: boolean;
 };
 
 export function JobsHeader({
   searchValue,
   onSearchChange,
-  locationValue,
-  onLocationChange,
+  countryValue,
+  onCountryChange,
+  workTypeValue,
+  onWorkTypeChange,
   jobTypeValue,
   onJobTypeChange,
   experienceValue,
   onExperienceChange,
   sortValue,
   onSortChange,
+  onRefresh,
+  isSyncing = false,
   className,
 }: JobsHeaderProps) {
   const [filtersOpen, setFiltersOpen] = useState(false);
+
+  const filterBarProps = {
+    countryValue,
+    onCountryChange,
+    workTypeValue,
+    onWorkTypeChange,
+    jobTypeValue,
+    onJobTypeChange,
+    experienceValue,
+    onExperienceChange,
+    sortValue,
+    onSortChange,
+  };
 
   return (
     <header className={cn("flex flex-col gap-3 border-b p-3 md:p-4 lg:gap-4 lg:p-6 lg:pb-4", className)}>
@@ -46,10 +67,24 @@ export function JobsHeader({
             AI finds the best job opportunities that match your profile.
           </p>
         </div>
-        <Button variant="outline" className="h-9 shrink-0 text-xs sm:h-11 sm:text-sm">
-          <RefreshCw className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" />
-          <span className="hidden sm:inline">Refetch Latest Jobs</span>
-          <span className="sm:hidden">Refresh</span>
+        <Button
+          variant="outline"
+          className="h-9 shrink-0 text-xs sm:h-11 sm:text-sm"
+          onClick={onRefresh}
+          disabled={isSyncing}
+        >
+          <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4", isSyncing && "animate-spin")} />
+          {isSyncing ? (
+            <>
+              <span className="hidden sm:inline">Fetching new jobs…</span>
+              <span className="sm:hidden">Fetching…</span>
+            </>
+          ) : (
+            <>
+              <span className="hidden sm:inline">Refetch Latest Jobs</span>
+              <span className="sm:hidden">Refresh</span>
+            </>
+          )}
         </Button>
       </div>
 
@@ -68,28 +103,14 @@ export function JobsHeader({
           onClick={() => setFiltersOpen((o) => !o)}
           aria-label="Toggle filters"
         >
-          {filtersOpen ? (
-            <X className="h-4 w-4" />
-          ) : (
-            <SlidersHorizontal className="h-4 w-4" />
-          )}
+          {filtersOpen ? <X className="h-4 w-4" /> : <SlidersHorizontal className="h-4 w-4" />}
         </Button>
       </div>
 
-      {/* Mobile expanded filters (search excluded, handled above) */}
+      {/* Mobile expanded filters */}
       {filtersOpen && (
         <div className="flex flex-col gap-2 md:hidden">
-          <FilterBar
-            hideSearch
-            locationValue={locationValue}
-            onLocationChange={onLocationChange}
-            jobTypeValue={jobTypeValue}
-            onJobTypeChange={onJobTypeChange}
-            experienceValue={experienceValue}
-            onExperienceChange={onExperienceChange}
-            sortValue={sortValue}
-            onSortChange={onSortChange}
-          />
+          <FilterBar hideSearch {...filterBarProps} />
         </div>
       )}
 
@@ -98,14 +119,7 @@ export function JobsHeader({
         <FilterBar
           searchValue={searchValue}
           onSearchChange={onSearchChange}
-          locationValue={locationValue}
-          onLocationChange={onLocationChange}
-          jobTypeValue={jobTypeValue}
-          onJobTypeChange={onJobTypeChange}
-          experienceValue={experienceValue}
-          onExperienceChange={onExperienceChange}
-          sortValue={sortValue}
-          onSortChange={onSortChange}
+          {...filterBarProps}
         />
       </div>
     </header>
