@@ -3,16 +3,21 @@
 import {
   createContext,
   useContext,
+  useEffect,
+  useState,
 } from "react";
 import { usePathname } from "next/navigation";
 import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { clearAccessTokenCookie } from "@/lib/auth-cookie";
 import {
-  fetchCurrentUser,
+  clearAccessTokenCookie,
+  onAccessTokenChange,
+} from "@/lib/auth-cookie";
+import {
   apiClient,
+  fetchCurrentUser,
 } from "@/lib/api";
 
 export interface User {
@@ -54,8 +59,7 @@ export function AuthProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const queryClient =
-    useQueryClient();
+  const queryClient = useQueryClient();
 
   const pathname = usePathname();
 
@@ -68,14 +72,27 @@ export function AuthProvider({
     "/reset-password",
   ];
 
+  const [hasAccessToken, setHasAccessToken] = useState(
+    typeof window !== "undefined" &&
+      !!localStorage.getItem("accessToken")
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setHasAccessToken(
+      !!localStorage.getItem("accessToken")
+    );
+    return onAccessTokenChange(() => {
+      setHasAccessToken(
+        !!localStorage.getItem("accessToken")
+      );
+    });
+  }, []);
+
   const shouldFetchUser =
     typeof window !== "undefined" &&
-    !!localStorage.getItem(
-      "accessToken"
-    ) &&
-    !publicRoutes.includes(
-      pathname
-    );
+    hasAccessToken &&
+    !publicRoutes.includes(pathname);
 
   const {
     data: user,
@@ -85,7 +102,11 @@ export function AuthProvider({
     queryFn: fetchCurrentUser,
     enabled: shouldFetchUser,
     retry: 1,
-    initialData: () =>
+    // Use placeholderData (not initialData) so React Query always treats the
+    // stored value as stale and immediately fires a fresh /me fetch on mount.
+    // initialData would mark the cached value as fresh for staleTime (5 min),
+    // which caused the previous account's data to show after switching accounts.
+    placeholderData: () =>
       typeof window !== "undefined"
         ? getUserFromStorage()
         : null,
@@ -111,15 +132,15 @@ export function AuthProvider({
     }
   };
 
-  const refetchUser =
-    async () => {
-      await queryClient.invalidateQueries(
-        {
-          queryKey:
-            USER_QUERY_KEY,
-        }
-      );
-    };
+  const refetchUser = async () => {
+    await queryClient.invalidateQueries({
+      queryKey: USER_QUERY_KEY,
+    });
+    await queryClient.refetchQueries({
+      queryKey: USER_QUERY_KEY,
+      exact: true,
+    });
+  };
 
   const logout = async () => {
     try {
@@ -132,6 +153,7 @@ export function AuthProvider({
       USER_QUERY_KEY,
       null
     );
+    queryClient.clear();
 
     localStorage.removeItem(
       "user"

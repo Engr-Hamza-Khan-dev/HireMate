@@ -101,6 +101,7 @@ export function UserFooter({ name, email, avatarUrl, collapsed = false }: UserFo
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className="text-destructive focus:text-destructive"
+          onSelect={logout}
           onClick={logout}
         >
           Sign Out

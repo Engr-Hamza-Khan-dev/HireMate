@@ -18,6 +18,7 @@ import { Button } from "@/components/Atoms/button";
 import { validateEmail, validatePassword } from "@/lib/auth-validation";
 import { setAccessTokenCookie } from "@/lib/auth-cookie";
 import { signIn, getApiErrorMessage } from "@/lib/api";
+import { useAuth } from "@/context/Authcontext";
 
 interface SignInErrors {
   email?: string;
@@ -26,6 +27,7 @@ interface SignInErrors {
 
 export default function SignInPage() {
   const router = useRouter();
+  const { setUser } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [fields, setFields] = useState({ email: "", password: "" });
@@ -36,7 +38,37 @@ export default function SignInPage() {
     mutationFn: signIn,
     onSuccess: (data) => {
       const token = data?.accessToken;
-      if (token) setAccessTokenCookie(token);
+      const apiUser = (data as any)?.user;
+
+      // Always clear any previous session's data before writing the new user's
+      // data — this prevents stale data from a prior account leaking into the
+      // new session (e.g. when switching accounts without a full page reload).
+      localStorage.removeItem("user");
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("isAuthenticated");
+
+      if (token) {
+        setAccessTokenCookie(token);
+        localStorage.setItem("accessToken", token);
+        localStorage.setItem("isAuthenticated", "true");
+      }
+
+      if (apiUser) {
+        const normalizedUser = {
+          _id: apiUser._id ?? apiUser.id ?? "",
+          fullname: apiUser.fullname ?? "",
+          email: apiUser.email ?? "",
+          avatar: apiUser.avatar ?? undefined,
+        };
+        setUser(normalizedUser);
+        localStorage.setItem("user", JSON.stringify(normalizedUser));
+      } else {
+        // Backend didn't return a user object in the login response.
+        // Clear the query cache so initialData doesn't serve the previous
+        // account's cached user — the fresh /me fetch will populate it.
+        setUser(null);
+      }
+
       router.push("/dashboard");
     },
   });

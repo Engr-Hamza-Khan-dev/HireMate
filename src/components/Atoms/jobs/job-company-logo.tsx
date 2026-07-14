@@ -3,15 +3,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { ComponentProps } from "react";
 
 export type CompanyLogoProps = ComponentProps<"div"> & {
-  src: string;
+  src?: string;
   alt: string;
   size?: "sm" | "md" | "lg";
-};
-
-const sizeClasses = {
-  sm: "h-8 w-8",
-  md: "h-10 w-10",
-  lg: "h-12 w-12",
 };
 
 export function CompanyLogo({
@@ -29,7 +23,9 @@ export function CompanyLogo({
 
   return (
     <Avatar className={className} size={size === "lg" ? "lg" : size === "sm" ? "sm" : "default"}>
-      <Image src={src} alt={alt} fill className="object-cover" unoptimized />
+      {src ? (
+        <Image src={src} alt={alt} fill className="object-cover" unoptimized />
+      ) : null}
       <AvatarFallback className="text-xs font-semibold">{initials}</AvatarFallback>
     </Avatar>
   );

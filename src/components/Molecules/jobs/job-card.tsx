@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { CompanyLogo } from "@/components/Atoms/jobs/job-company-logo";
 import { JobMeta } from "@/components/Atoms/jobs/job-meta";
 import { MatchBadge } from "@/components/Atoms/match-badge";
-import type { Job } from "@/lib/data/jobs";
+import type { Job } from "@/lib/jobs-api";
 
 export type JobCardProps = ComponentProps<"button"> & {
   job: Job;
@@ -27,7 +27,7 @@ export function JobCard({ job, isSelected = false, onSelect, className }: JobCar
       )}
     >
       <CompanyLogo
-        src={job.companyLogo}
+        src={job.companyLogo || ""}
         alt={job.company}
         size="sm"
         className="shrink-0"
@@ -35,9 +35,11 @@ export function JobCard({ job, isSelected = false, onSelect, className }: JobCar
       <div className="min-w-0 flex-1 text-left">
         <p className="truncate text-sm font-medium text-foreground">{job.title}</p>
         <p className="truncate text-xs text-muted-foreground">{job.company}</p>
-        <JobMeta items={[job.location, job.type, job.experience]} className="mt-1" />
+        <JobMeta items={[job.location, job.type, job.salary].filter(Boolean) as string[]} className="mt-1" />
       </div>
-      <MatchBadge percentage={job.matchPercentage} variant="success" showLabel={false} />
+      {job.matchPercentage > 0 && (
+        <MatchBadge percentage={job.matchPercentage} variant="success" showLabel={false} />
+      )}
     </button>
   );
 }
