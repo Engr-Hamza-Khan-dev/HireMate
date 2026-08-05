@@ -9,6 +9,7 @@ export type MatchAnalysisCardProps = ComponentProps<"div"> & {
   experienceLevel?: boolean;
   projectsAlign?: boolean;
   keywordsMatch?: boolean;
+  
 };
 
 export function MatchAnalysisCard({
